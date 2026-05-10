@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+    "time"
 
 	"github.com/rs/zerolog/log"
 
@@ -54,10 +55,35 @@ type GroupsService interface {
 	SetDungeonDifficulty(ctx context.Context, realmID uint32, updaterGUID uint64, difficulty uint8) error
 	SetRaidDifficulty(ctx context.Context, realmID uint32, updaterGUID uint64, difficulty uint8) error
 
+	StartReadyCheck(ctx context.Context, realmID uint32, leaderGUID uint64, durationMs uint32) error
+	SetReadyCheckMemberState(ctx context.Context, realmID uint32, memberGUID uint64, state uint8) error
+	FinishReadyCheck(ctx context.Context, realmID uint32, playerGUID uint64) error
+	ChangeMemberSubGroup(ctx context.Context, realmID uint32, updaterGUID, memberGUID uint64, subGroup uint8) error
+	SetMemberFlags(ctx context.Context, realmID uint32, updaterGUID, memberGUID uint64, flags, roles uint8) error
+	UpdateMemberState(ctx context.Context, realmID uint32, memberGUID uint64, online bool, level, class uint8, zoneID, mapID uint32, healthPct, powerPct uint16) error
+	ResetInstance(ctx context.Context, realmID uint32, playerGUID uint64, mapID uint32, difficulty uint8) error
+	SetInstanceBindExtension(ctx context.Context, realmID uint32, playerGUID uint64, mapID uint32, difficulty uint8, extended bool) error
+
 	// GWCharacterLoggedInHandler updates cache with player logged in.
 	events.GWCharacterLoggedInHandler
 	// GWCharacterLoggedOutHandler updates cache with player logged out.
 	events.GWCharacterLoggedOutHandler
+}
+
+func subgroupMemberCount(group *repo.Group, subGroup uint8, exceptGUID uint64) int {
+	count := 0
+
+	for _, member := range group.Members {
+		if member.MemberGUID == exceptGUID {
+			continue
+		}
+
+		if member.SubGroup == subGroup {
+			count++
+		}
+	}
+
+	return count
 }
 
 func NewGroupsService(r repo.GroupsRepo, charClient pb.CharactersServiceClient, ep events.GroupServiceProducer) GroupsService {
@@ -812,4 +838,290 @@ func (g groupServiceImpl) changeLeader(ctx context.Context, realmID uint32, grou
 	}
 
 	return nil
+}
+
+func (g groupServiceImpl) StartReadyCheck(ctx context.Context, realmID uint32, leaderGUID uint64, durationMs uint32) error {
+	if durationMs == 0 {
+		durationMs = 35000
+	}
+
+	group, err := g.GroupByMemberGUID(ctx, realmID, leaderGUID)
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return ErrGroupNotFound
+	}
+
+	member := group.MemberByGUID(leaderGUID)
+	if member == nil {
+		return ErrGroupMemberNotFound
+	}
+
+	if group.LeaderGUID != leaderGUID && !member.IsAssistant() {
+		return ErrNoPermissions
+	}
+
+	receivers := group.OnlineMemberGUIDs()
+
+	if err := g.ep.GroupReadyCheckStarted(&events.GroupEventReadyCheckStartedPayload{
+		ServiceID:  groupserver.ServiceID,
+		RealmID:    realmID,
+		GroupID:    group.ID,
+		LeaderGUID: leaderGUID,
+		DurationMs: durationMs,
+		Receivers:  receivers,
+	}); err != nil {
+		return err
+	}
+
+	go func(realmID uint32, groupID uint, receivers []uint64, durationMs uint32) {
+		time.Sleep(time.Duration(durationMs) * time.Millisecond)
+
+		_ = g.ep.GroupReadyCheckFinished(&events.GroupEventReadyCheckFinishedPayload{
+			ServiceID: groupserver.ServiceID,
+			RealmID:   realmID,
+			GroupID:   groupID,
+			Receivers: receivers,
+		})
+	}(realmID, group.ID, append([]uint64(nil), receivers...), durationMs)
+
+	return nil
+}
+
+func (g groupServiceImpl) SetReadyCheckMemberState(ctx context.Context, realmID uint32, memberGUID uint64, state uint8) error {
+	if state > 2 {
+		state = 2
+	}
+
+	group, err := g.GroupByMemberGUID(ctx, realmID, memberGUID)
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return ErrGroupNotFound
+	}
+
+	if group.MemberByGUID(memberGUID) == nil {
+		return ErrGroupMemberNotFound
+	}
+
+	return g.ep.GroupReadyCheckMemberState(&events.GroupEventReadyCheckMemberStatePayload{
+		ServiceID:  groupserver.ServiceID,
+		RealmID:    realmID,
+		GroupID:    group.ID,
+		MemberGUID: memberGUID,
+		State:      state,
+		Receivers:  group.OnlineMemberGUIDs(),
+	})
+}
+
+func (g groupServiceImpl) FinishReadyCheck(ctx context.Context, realmID uint32, playerGUID uint64) error {
+	group, err := g.GroupByMemberGUID(ctx, realmID, playerGUID)
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return ErrGroupNotFound
+	}
+
+	return g.ep.GroupReadyCheckFinished(&events.GroupEventReadyCheckFinishedPayload{
+		ServiceID: groupserver.ServiceID,
+		RealmID:   realmID,
+		GroupID:   group.ID,
+		Receivers: group.OnlineMemberGUIDs(),
+	})
+}
+
+func (g groupServiceImpl) ChangeMemberSubGroup(ctx context.Context, realmID uint32, updaterGUID, memberGUID uint64, subGroup uint8) error {
+	if subGroup >= 8 {
+		return ErrNoPermissions
+	}
+
+	group, err := g.GroupByMemberGUID(ctx, realmID, updaterGUID)
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return ErrGroupNotFound
+	}
+
+	updater := group.MemberByGUID(updaterGUID)
+	if updater == nil {
+		return ErrGroupMemberNotFound
+	}
+
+	if group.LeaderGUID != updaterGUID && !updater.IsAssistant() {
+		return ErrNoPermissions
+	}
+
+	member := group.MemberByGUID(memberGUID)
+	if member == nil {
+		return ErrGroupMemberNotFound
+	}
+
+	if member.SubGroup == subGroup {
+		return nil
+	}
+
+	if subgroupMemberCount(group, subGroup, memberGUID) >= repo.MaxGroupSize {
+		return ErrGroupFull
+	}
+
+	member.SubGroup = subGroup
+
+	if err := g.r.UpdateMember(ctx, realmID, member); err != nil {
+		return err
+	}
+
+	return g.ep.GroupMemberSubGroupChanged(&events.GroupEventMemberSubGroupChangedPayload{
+		ServiceID:  groupserver.ServiceID,
+		RealmID:    realmID,
+		GroupID:    group.ID,
+		MemberGUID: memberGUID,
+		SubGroup:   subGroup,
+		Receivers:  group.OnlineMemberGUIDs(),
+	})
+}
+
+func (g groupServiceImpl) SetMemberFlags(ctx context.Context, realmID uint32, updaterGUID, memberGUID uint64, flags, roles uint8) error {
+	group, err := g.GroupByMemberGUID(ctx, realmID, updaterGUID)
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return ErrGroupNotFound
+	}
+
+	updater := group.MemberByGUID(updaterGUID)
+	if updater == nil {
+		return ErrGroupMemberNotFound
+	}
+
+	if group.LeaderGUID != updaterGUID && !updater.IsAssistant() {
+		return ErrNoPermissions
+	}
+
+	member := group.MemberByGUID(memberGUID)
+	if member == nil {
+		return ErrGroupMemberNotFound
+	}
+
+	if member.MemberFlags == flags && uint8(member.Roles) == roles {
+		return nil
+	}
+
+	member.MemberFlags = flags
+	member.Roles = repo.RoleFlags(roles)
+
+	if err := g.r.UpdateMember(ctx, realmID, member); err != nil {
+		return err
+	}
+
+	return g.ep.GroupMemberFlagsChanged(&events.GroupEventMemberFlagsChangedPayload{
+		ServiceID:  groupserver.ServiceID,
+		RealmID:    realmID,
+		GroupID:    group.ID,
+		MemberGUID: memberGUID,
+		Flags:      flags,
+		Roles:      roles,
+		Receivers:  group.OnlineMemberGUIDs(),
+	})
+}
+
+func (g groupServiceImpl) UpdateMemberState(ctx context.Context, realmID uint32, memberGUID uint64, online bool, level, class uint8, zoneID, mapID uint32, healthPct, powerPct uint16) error {
+	if healthPct > 100 {
+		healthPct = 100
+	}
+	if powerPct > 100 {
+		powerPct = 100
+	}
+
+	group, err := g.GroupByMemberGUID(ctx, realmID, memberGUID)
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return nil
+	}
+
+	member := group.MemberByGUID(memberGUID)
+	if member == nil {
+		return nil
+	}
+
+	if member.IsOnline != online {
+		member.IsOnline = online
+
+		if err := g.r.UpdateMember(ctx, realmID, member); err != nil {
+			return err
+		}
+	}
+
+	return g.ep.GroupMemberStateChanged(&events.GroupEventMemberStateChangedPayload{
+		ServiceID:  groupserver.ServiceID,
+		RealmID:    realmID,
+		GroupID:    group.ID,
+		MemberGUID: memberGUID,
+		Online:     online,
+		Level:      level,
+		Class:      class,
+		ZoneID:     zoneID,
+		MapID:      mapID,
+		HealthPct:  healthPct,
+		PowerPct:   powerPct,
+		Receivers:  group.OnlineMemberGUIDs(),
+	})
+}
+
+func (g groupServiceImpl) ResetInstance(ctx context.Context, realmID uint32, playerGUID uint64, mapID uint32, difficulty uint8) error {
+	group, err := g.GroupByMemberGUID(ctx, realmID, playerGUID)
+	if err != nil {
+		return err
+	}
+
+	groupID := uint(0)
+	receivers := []uint64{playerGUID}
+
+	if group != nil {
+		if group.LeaderGUID != playerGUID {
+			return ErrNoPermissions
+		}
+
+		groupID = group.ID
+		receivers = group.OnlineMemberGUIDs()
+	}
+
+	return g.ep.GroupInstanceResetRequest(&events.GroupEventInstanceResetRequestPayload{
+		ServiceID:  groupserver.ServiceID,
+		RealmID:    realmID,
+		GroupID:    groupID,
+		PlayerGUID: playerGUID,
+		MapID:      mapID,
+		Difficulty: difficulty,
+		Receivers:  receivers,
+	})
+}
+
+func (g groupServiceImpl) SetInstanceBindExtension(ctx context.Context, realmID uint32, playerGUID uint64, mapID uint32, difficulty uint8, extended bool) error {
+	group, err := g.GroupByMemberGUID(ctx, realmID, playerGUID)
+	if err != nil {
+		return err
+	}
+
+	groupID := uint(0)
+	if group != nil {
+		groupID = group.ID
+	}
+
+	return g.ep.GroupInstanceBindExtensionRequest(&events.GroupEventInstanceBindExtensionRequestPayload{
+		ServiceID:  groupserver.ServiceID,
+		RealmID:    realmID,
+		GroupID:    groupID,
+		PlayerGUID: playerGUID,
+		MapID:      mapID,
+		Difficulty: difficulty,
+		Extended:   extended,
+		Receivers:  []uint64{playerGUID},
+	})
 }

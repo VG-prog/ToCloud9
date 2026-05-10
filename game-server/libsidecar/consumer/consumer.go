@@ -265,6 +265,142 @@ func (c *natsConsumer) Start() error {
 
 	c.subs = append(c.subs, sub)
 
+	sub, err = c.nc.Subscribe(events.GroupEventGroupReadyCheckStarted.SubjectName(), func(msg *nats.Msg) {
+		p := events.GroupEventReadyCheckStartedPayload{}
+		_, err := events.Unmarshal(msg.Data, &p)
+		if err != nil {
+			log.Error().Err(err).Msg("can't read GroupEventReadyCheckStarted event")
+			return
+		}
+		if p.RealmID != c.realmID {
+			return
+		}
+		c.queue.Push(c.groupHandlersFabric.GroupReadyCheckStarted(&p))
+	})
+	if err != nil {
+		return err
+	}
+	c.subs = append(c.subs, sub)
+
+	sub, err = c.nc.Subscribe(events.GroupEventGroupReadyCheckMemberState.SubjectName(), func(msg *nats.Msg) {
+		p := events.GroupEventReadyCheckMemberStatePayload{}
+		_, err := events.Unmarshal(msg.Data, &p)
+		if err != nil {
+			log.Error().Err(err).Msg("can't read GroupEventReadyCheckMemberState event")
+			return
+		}
+		if p.RealmID != c.realmID {
+			return
+		}
+		c.queue.Push(c.groupHandlersFabric.GroupReadyCheckMemberState(&p))
+	})
+	if err != nil {
+		return err
+	}
+	c.subs = append(c.subs, sub)
+
+	sub, err = c.nc.Subscribe(events.GroupEventGroupReadyCheckFinished.SubjectName(), func(msg *nats.Msg) {
+		p := events.GroupEventReadyCheckFinishedPayload{}
+		_, err := events.Unmarshal(msg.Data, &p)
+		if err != nil {
+			log.Error().Err(err).Msg("can't read GroupEventReadyCheckFinished event")
+			return
+		}
+		if p.RealmID != c.realmID {
+			return
+		}
+		c.queue.Push(c.groupHandlersFabric.GroupReadyCheckFinished(&p))
+	})
+	if err != nil {
+		return err
+	}
+	c.subs = append(c.subs, sub)
+
+	sub, err = c.nc.Subscribe(events.GroupEventGroupMemberSubGroupChanged.SubjectName(), func(msg *nats.Msg) {
+		p := events.GroupEventMemberSubGroupChangedPayload{}
+		_, err := events.Unmarshal(msg.Data, &p)
+		if err != nil {
+			log.Error().Err(err).Msg("can't read GroupEventMemberSubGroupChanged event")
+			return
+		}
+		if p.RealmID != c.realmID {
+			return
+		}
+		c.queue.Push(c.groupHandlersFabric.GroupMemberSubGroupChanged(&p))
+	})
+	if err != nil {
+		return err
+	}
+	c.subs = append(c.subs, sub)
+
+	sub, err = c.nc.Subscribe(events.GroupEventGroupMemberFlagsChanged.SubjectName(), func(msg *nats.Msg) {
+		p := events.GroupEventMemberFlagsChangedPayload{}
+		_, err := events.Unmarshal(msg.Data, &p)
+		if err != nil {
+			log.Error().Err(err).Msg("can't read GroupEventMemberFlagsChanged event")
+			return
+		}
+		if p.RealmID != c.realmID {
+			return
+		}
+		c.queue.Push(c.groupHandlersFabric.GroupMemberFlagsChanged(&p))
+	})
+	if err != nil {
+		return err
+	}
+	c.subs = append(c.subs, sub)
+
+	sub, err = c.nc.Subscribe(events.GroupEventGroupMemberStateChanged.SubjectName(), func(msg *nats.Msg) {
+		p := events.GroupEventMemberStateChangedPayload{}
+		_, err := events.Unmarshal(msg.Data, &p)
+		if err != nil {
+			log.Error().Err(err).Msg("can't read GroupEventMemberStateChanged event")
+			return
+		}
+		if p.RealmID != c.realmID {
+			return
+		}
+		c.queue.Push(c.groupHandlersFabric.GroupMemberStateChanged(&p))
+	})
+	if err != nil {
+		return err
+	}
+	c.subs = append(c.subs, sub)
+
+	sub, err = c.nc.Subscribe(events.GroupEventGroupInstanceResetRequest.SubjectName(), func(msg *nats.Msg) {
+		p := events.GroupEventInstanceResetRequestPayload{}
+		_, err := events.Unmarshal(msg.Data, &p)
+		if err != nil {
+			log.Error().Err(err).Msg("can't read GroupEventInstanceResetRequest event")
+			return
+		}
+		if p.RealmID != c.realmID {
+			return
+		}
+		c.queue.Push(c.groupHandlersFabric.GroupInstanceResetRequest(&p))
+	})
+	if err != nil {
+		return err
+	}
+	c.subs = append(c.subs, sub)
+
+	sub, err = c.nc.Subscribe(events.GroupEventGroupInstanceBindExtensionRequest.SubjectName(), func(msg *nats.Msg) {
+		p := events.GroupEventInstanceBindExtensionRequestPayload{}
+		_, err := events.Unmarshal(msg.Data, &p)
+		if err != nil {
+			log.Error().Err(err).Msg("can't read GroupEventInstanceBindExtensionRequest event")
+			return
+		}
+		if p.RealmID != c.realmID {
+			return
+		}
+		c.queue.Push(c.groupHandlersFabric.GroupInstanceBindExtensionRequest(&p))
+	})
+	if err != nil {
+		return err
+	}
+	c.subs = append(c.subs, sub)
+
 	return nil
 }
 

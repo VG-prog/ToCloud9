@@ -24,6 +24,15 @@ service GroupService {
   rpc SetRaidDifficulty(SetRaidDifficultyRequest) returns (SetRaidDifficultyResponse);
 
   rpc SendMessage(SendGroupMessageParams) returns (SendGroupMessageResponse);
+  
+  rpc StartReadyCheck(StartReadyCheckRequest) returns (StartReadyCheckResponse);
+  rpc SetReadyCheckMemberState(SetReadyCheckMemberStateRequest) returns (SetReadyCheckMemberStateResponse);
+  rpc FinishReadyCheck(FinishReadyCheckRequest) returns (FinishReadyCheckResponse);
+  rpc ChangeMemberSubGroup(ChangeMemberSubGroupRequest) returns (ChangeMemberSubGroupResponse);
+  rpc SetMemberFlags(SetMemberFlagsRequest) returns (SetMemberFlagsResponse);
+  rpc UpdateMemberState(UpdateMemberStateRequest) returns (UpdateMemberStateResponse);
+  rpc ResetInstance(ResetInstanceRequest) returns (ResetInstanceResponse);
+  rpc SetInstanceBindExtension(SetInstanceBindExtensionRequest) returns (SetInstanceBindExtensionResponse);
 }
 
 message InviteParams {
@@ -264,4 +273,103 @@ message SetRaidDifficultyResponse {
   }
 
   Status status = 2;
+}
+
+message StartReadyCheckRequest {
+  string api = 1;
+  uint32 realmID = 2;
+  uint64 leaderGUID = 3;
+  uint32 durationMs = 4;
+}
+
+message StartReadyCheckResponse {
+  string api = 1;
+}
+
+message SetReadyCheckMemberStateRequest {
+  string api = 1;
+  uint32 realmID = 2;
+  uint64 memberGUID = 3;
+  uint32 state = 4;
+}
+
+message SetReadyCheckMemberStateResponse {
+  string api = 1;
+}
+
+message FinishReadyCheckRequest {
+  string api = 1;
+  uint32 realmID = 2;
+  uint64 playerGUID = 3;
+}
+
+message FinishReadyCheckResponse {
+  string api = 1;
+}
+
+message ChangeMemberSubGroupRequest {
+  string api = 1;
+  uint32 realmID = 2;
+  uint64 updaterGUID = 3;
+  uint64 memberGUID = 4;
+  uint32 subGroup = 5;
+}
+
+message ChangeMemberSubGroupResponse {
+  string api = 1;
+}
+
+message SetMemberFlagsRequest {
+  string api = 1;
+  uint32 realmID = 2;
+  uint64 updaterGUID = 3;
+  uint64 memberGUID = 4;
+  uint32 flags = 5;
+  uint32 roles = 6;
+}
+
+message SetMemberFlagsResponse {
+  string api = 1;
+}
+
+message UpdateMemberStateRequest {
+  string api = 1;
+  uint32 realmID = 2;
+  uint64 memberGUID = 3;
+  bool online = 4;
+  uint32 level = 5;
+  uint32 classID = 6;
+  uint32 zoneID = 7;
+  uint32 mapID = 8;
+  uint32 healthPct = 9;
+  uint32 powerPct = 10;
+}
+
+message UpdateMemberStateResponse {
+  string api = 1;
+}
+
+message ResetInstanceRequest {
+  string api = 1;
+  uint32 realmID = 2;
+  uint64 playerGUID = 3;
+  uint32 mapID = 4;
+  uint32 difficulty = 5;
+}
+
+message ResetInstanceResponse {
+  string api = 1;
+}
+
+message SetInstanceBindExtensionRequest {
+  string api = 1;
+  uint32 realmID = 2;
+  uint64 playerGUID = 3;
+  uint32 mapID = 4;
+  uint32 difficulty = 5;
+  bool extended = 6;
+}
+
+message SetInstanceBindExtensionResponse {
+  string api = 1;
 }

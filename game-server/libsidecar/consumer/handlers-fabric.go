@@ -19,6 +19,14 @@ type GroupHandlersFabric interface {
 	GroupLootTypeChanged(payload *events.GroupEventGroupLootTypeChangedPayload) queue.Handler
 	GroupDifficultyChanged(payload *events.GroupEventGroupDifficultyChangedPayload) queue.Handler
 	GroupConvertedToRaid(payload *events.GroupEventGroupConvertedToRaidPayload) queue.Handler
+	GroupReadyCheckStarted(payload *events.GroupEventReadyCheckStartedPayload) queue.Handler
+	GroupReadyCheckMemberState(payload *events.GroupEventReadyCheckMemberStatePayload) queue.Handler
+	GroupReadyCheckFinished(payload *events.GroupEventReadyCheckFinishedPayload) queue.Handler
+	GroupMemberSubGroupChanged(payload *events.GroupEventMemberSubGroupChangedPayload) queue.Handler
+	GroupMemberFlagsChanged(payload *events.GroupEventMemberFlagsChangedPayload) queue.Handler
+	GroupMemberStateChanged(payload *events.GroupEventMemberStateChangedPayload) queue.Handler
+	GroupInstanceResetRequest(payload *events.GroupEventInstanceResetRequestPayload) queue.Handler
+	GroupInstanceBindExtensionRequest(payload *events.GroupEventInstanceBindExtensionRequestPayload) queue.Handler
 }
 
 type ServerRegistryHandlerFabric interface {

@@ -24,6 +24,9 @@ service WorldServerService {
   rpc AddPlayersToBattleground(AddPlayersToBattlegroundRequest) returns (AddPlayersToBattlegroundResponse);
   rpc CanPlayerJoinBattlegroundQueue(CanPlayerJoinBattlegroundQueueRequest) returns (CanPlayerJoinBattlegroundQueueResponse);
   rpc CanPlayerTeleportToBattleground(CanPlayerTeleportToBattlegroundRequest) returns (CanPlayerTeleportToBattlegroundResponse);
+
+  // Guilds
+  rpc CreateGuild(CreateGuildRequest) returns (CreateGuildResponse);
 }
 
 // GetPlayerItemsByGuids
@@ -47,7 +50,7 @@ message GetPlayerItemsByGuidsResponse {
     uint32 count = 7;
     uint32 flags = 8;
     uint32 durability = 9;
-    uint32 randomPropertyID = 10;
+    int32 randomPropertyID = 10;
     string text = 11;
   };
   repeated Item items = 2;
@@ -79,7 +82,7 @@ message AddExistingItemToPlayerRequest {
     uint32 count = 7;
     uint32 flags = 8;
     uint32 durability = 9;
-    uint32 randomPropertyID = 10;
+    int32 randomPropertyID = 10;
     string text = 11;
   }
 
@@ -240,4 +243,25 @@ message CanPlayerTeleportToBattlegroundResponse {
   }
 
   Status status = 2;
+}
+
+message CreateGuildRequest {
+  string api = 1;
+  uint64 leaderGuid = 2;
+  string guildName = 3;
+}
+
+message CreateGuildResponse {
+  string api = 1;
+
+  enum Status {
+    Success = 0;
+    NameExists = 1;
+    InvalidName = 2;
+    LeaderNotFound = 3;
+    InternalError = 4;
+  }
+
+  Status status = 2;
+  uint64 guildId = 3;
 }

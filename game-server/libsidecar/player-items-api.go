@@ -49,9 +49,9 @@ func GetPlayerItemsByGuidHandler(player uint64, items []uint64) ([]grpcapi.Playe
 		itemsResult[i].Slot = uint8(returnedItems[i].slot)
 		itemsResult[i].IsTradable = bool(returnedItems[i].isTradable)
 		itemsResult[i].Count = uint32(returnedItems[i].count)
-		itemsResult[i].Flags = uint16(returnedItems[i].flags)
+		itemsResult[i].Flags = uint32(returnedItems[i].flags)
 		itemsResult[i].Durability = uint32(returnedItems[i].durability)
-		itemsResult[i].RandomPropertyID = uint32(returnedItems[i].randomPropertyID)
+		itemsResult[i].RandomPropertyID = int32(returnedItems[i].randomPropertyID)
 
 		C.free((unsafe.Pointer)(returnedItems[i].text))
 	}
@@ -91,9 +91,9 @@ func AddExistingItemToPlayerHandler(player uint64, item *grpcapi.ItemToAdd) erro
 	request.itemGuid = C.uint64_t(item.Guid)
 	request.itemEntry = C.uint32_t(item.Entry)
 	request.itemCount = C.uint32_t(item.Count)
-	request.itemFlags = C.uint16_t(item.Flags)
+	request.itemFlags = C.uint32_t(item.Flags)
 	request.itemDurability = C.uint8_t(item.Durability)
-	request.itemRandomPropertyID = C.int8_t(item.RandomPropertyID)
+	request.itemRandomPropertyID = C.int32_t(item.RandomPropertyID)
 
 	res := C.CallAddExistingItemToPlayerHandler(&request)
 	if res != C.PlayerItemErrorCodeNoError {

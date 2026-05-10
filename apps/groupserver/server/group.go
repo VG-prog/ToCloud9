@@ -249,3 +249,86 @@ func (g GroupServer) getGroupResponse(group *repo.Group) *pb.GetGroupResponse {
 		},
 	}
 }
+
+func (g GroupServer) StartReadyCheck(ctx context.Context, params *pb.StartReadyCheckRequest) (*pb.StartReadyCheckResponse, error) {
+	err := g.groupService.StartReadyCheck(ctx, params.RealmID, params.LeaderGUID, params.DurationMs)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.StartReadyCheckResponse{Api: groupserver.Ver}, nil
+}
+
+func (g GroupServer) SetReadyCheckMemberState(ctx context.Context, params *pb.SetReadyCheckMemberStateRequest) (*pb.SetReadyCheckMemberStateResponse, error) {
+	err := g.groupService.SetReadyCheckMemberState(ctx, params.RealmID, params.MemberGUID, uint8(params.State))
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.SetReadyCheckMemberStateResponse{Api: groupserver.Ver}, nil
+}
+
+func (g GroupServer) FinishReadyCheck(ctx context.Context, params *pb.FinishReadyCheckRequest) (*pb.FinishReadyCheckResponse, error) {
+	err := g.groupService.FinishReadyCheck(ctx, params.RealmID, params.PlayerGUID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.FinishReadyCheckResponse{Api: groupserver.Ver}, nil
+}
+
+func (g GroupServer) ChangeMemberSubGroup(ctx context.Context, params *pb.ChangeMemberSubGroupRequest) (*pb.ChangeMemberSubGroupResponse, error) {
+	err := g.groupService.ChangeMemberSubGroup(ctx, params.RealmID, params.UpdaterGUID, params.MemberGUID, uint8(params.SubGroup))
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.ChangeMemberSubGroupResponse{Api: groupserver.Ver}, nil
+}
+
+func (g GroupServer) SetMemberFlags(ctx context.Context, params *pb.SetMemberFlagsRequest) (*pb.SetMemberFlagsResponse, error) {
+	err := g.groupService.SetMemberFlags(ctx, params.RealmID, params.UpdaterGUID, params.MemberGUID, uint8(params.Flags), uint8(params.Roles))
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.SetMemberFlagsResponse{Api: groupserver.Ver}, nil
+}
+
+func (g GroupServer) UpdateMemberState(ctx context.Context, params *pb.UpdateMemberStateRequest) (*pb.UpdateMemberStateResponse, error) {
+	err := g.groupService.UpdateMemberState(
+		ctx,
+		params.RealmID,
+		params.MemberGUID,
+		params.Online,
+		uint8(params.Level),
+		uint8(params.ClassID),
+		params.ZoneID,
+		params.MapID,
+		uint16(params.HealthPct),
+		uint16(params.PowerPct),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.UpdateMemberStateResponse{Api: groupserver.Ver}, nil
+}
+
+func (g GroupServer) ResetInstance(ctx context.Context, params *pb.ResetInstanceRequest) (*pb.ResetInstanceResponse, error) {
+	err := g.groupService.ResetInstance(ctx, params.RealmID, params.PlayerGUID, params.MapID, uint8(params.Difficulty))
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.ResetInstanceResponse{Api: groupserver.Ver}, nil
+}
+
+func (g GroupServer) SetInstanceBindExtension(ctx context.Context, params *pb.SetInstanceBindExtensionRequest) (*pb.SetInstanceBindExtensionResponse, error) {
+	err := g.groupService.SetInstanceBindExtension(ctx, params.RealmID, params.PlayerGUID, params.MapID, uint8(params.Difficulty), params.Extended)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.SetInstanceBindExtensionResponse{Api: groupserver.Ver}, nil
+}

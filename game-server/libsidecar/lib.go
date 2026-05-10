@@ -63,6 +63,8 @@ func initLib(realmID uint32) (*config.Config, healthandmetrics.Server, ShutdownF
 
 	guidConn := SetupGuidServiceConnection(cfg)
 
+	groupConn := SetupGroupServiceConnection(cfg)
+
 	SetupMatchmakingConnection(ctx, cfg)
 
 	grpcListener, grpcServer := SetupGRPCService(cfg)
@@ -101,6 +103,10 @@ func initLib(realmID uint32) (*config.Config, healthandmetrics.Server, ShutdownF
 
 		if err = guidConn.Close(); err != nil {
 			log.Fatal().Err(err).Msg("failed to close guid service connection")
+		}
+
+		if err = groupConn.Close(); err != nil {
+			log.Fatal().Err(err).Msg("failed to close group service connection")
 		}
 
 		log.Info().Msg("👍 Sidecar successfully stopped.")

@@ -8,9 +8,9 @@ type PlayerItem struct {
 	Slot             uint8
 	IsTradable       bool
 	Count            uint32
-	Flags            uint16
+	Flags            uint32
 	Durability       uint32
-	RandomPropertyID uint32
+	RandomPropertyID int32
 	Text             string
 }
 
@@ -18,9 +18,9 @@ type ItemToAdd struct {
 	Guid             uint64
 	Entry            uint32
 	Count            uint32
-	Flags            uint16
+	Flags            uint32
 	Durability       uint32
-	RandomPropertyID uint32
+	RandomPropertyID int32
 	Text             string
 }
 
@@ -47,6 +47,13 @@ type BattlegroundAddPlayersRequest struct {
 	HordePlayerGUIDsToAdd    []uint64
 	AlliancePlayerGUIDsToAdd []uint64
 }
+
+type GuildCreateResponse struct {
+	ErrorCode uint32
+	GuildID   uint64
+}
+
+type CreateGuildHandler func(leaderGuid uint64, guildName string) (*GuildCreateResponse, error)
 
 type GetPlayerItemsByGuidsHandler func(player uint64, items []uint64) ([]PlayerItem, error)
 
@@ -82,4 +89,5 @@ type CppBindings struct {
 	AddPlayersToBattleground        AddPlayersToBattlegroundHandler
 	CanPlayerJoinBattlegroundQueue  CanPlayerJoinBattlegroundQueueHandler
 	CanPlayerTeleportToBattleground CanPlayerTeleportToBattlegroundHandler
+	CreateGuild                     CreateGuildHandler
 }

@@ -16,21 +16,22 @@ func NewGroupNatsListener(nc *nats.Conn, broadcaster eBroadcaster.Broadcaster) L
 	listener := &groupNatsListener{
 		broadcaster: broadcaster,
 	}
-	listener.consumer = events.NewGroupEventsConsumer(
-		nc,
-		events.WithGroupEventConsumerInviteCreatedHandler(listener),
-		events.WithGroupEventConsumerGroupCreatedHandler(listener),
-		events.WithGroupEventConsumerGroupMemberOnlineStatusChangedHandler(listener),
-		events.WithGroupEventConsumerGroupMemberLeftHandler(listener),
-		events.WithGroupEventConsumerMemberAddedHandler(listener),
-		events.WithGroupEventConsumerGroupDisbandHandler(listener),
-		events.WithGroupEventConsumerConvertedToRaidHandler(listener),
-		events.WithGroupEventConsumerLeaderChangedHandler(listener),
-		events.WithGroupEventConsumerLootTypeChangedHandler(listener),
-		events.WithGroupEventNewChatMessageHandler(listener),
-		events.WithGroupEventNewTargetIconHandler(listener),
-		events.WithGroupDifficultyChangedHandler(listener),
-	)
+
+    listener.consumer = events.NewGroupEventsConsumer(
+        nc,
+        events.WithGroupEventConsumerInviteCreatedHandler(listener),
+        events.WithGroupEventConsumerGroupCreatedHandler(listener),
+        events.WithGroupEventConsumerGroupMemberOnlineStatusChangedHandler(listener),
+        events.WithGroupEventConsumerGroupMemberLeftHandler(listener),
+        events.WithGroupEventConsumerMemberAddedHandler(listener),
+        events.WithGroupEventConsumerGroupDisbandHandler(listener),
+        events.WithGroupEventConsumerConvertedToRaidHandler(listener),
+        events.WithGroupEventConsumerLeaderChangedHandler(listener),
+        events.WithGroupEventConsumerLootTypeChangedHandler(listener),
+        events.WithGroupEventNewChatMessageHandler(listener),
+        events.WithGroupEventNewTargetIconHandler(listener),
+        events.WithGroupDifficultyChangedHandler(listener),
+    )
 
 	return listener
 }

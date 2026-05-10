@@ -26,6 +26,8 @@ type Config struct {
 	// GuidProviderServiceAddress is address of service that provides guids to use
 	GuidProviderServiceAddress string `yaml:"guidProviderServiceAddress" env:"GUID_PROVIDER_SERVICE_ADDRESS" env-default:"localhost:8996"`
 
+	GroupServiceAddress string `yaml:"groupServiceAddress" env:"GROUP_SERVICE_ADDRESS" env-default:"localhost:8998"`
+
 	// CharacterGuidsBufferSize is the size of the buffer for characters guids
 	CharacterGuidsBufferSize int `yaml:"characterGuidsBufferSize" env:"CHARACTER_GUIDS_BUFFER_SIZE" env-default:"50"`
 

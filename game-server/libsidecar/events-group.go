@@ -6,8 +6,13 @@ package main
 import "C"
 
 import (
+	"context"
 	"fmt"
+	"time"
 	"unsafe"
+
+	groupserver "github.com/walkline/ToCloud9/apps/groupserver"
+	groupPb "github.com/walkline/ToCloud9/gen/group/pb"
 
 	"github.com/rs/zerolog"
 
@@ -72,6 +77,46 @@ func TC9SetOnGroupConvertedToRaidHook(h C.OnGroupConvertedToRaidHook) {
 	C.SetOnGroupConvertedToRaidHook(h)
 }
 
+//export TC9SetOnGroupReadyCheckStartedHook
+func TC9SetOnGroupReadyCheckStartedHook(h C.OnGroupReadyCheckStartedHook) {
+	C.SetOnGroupReadyCheckStartedHook(h)
+}
+
+//export TC9SetOnGroupReadyCheckMemberStateHook
+func TC9SetOnGroupReadyCheckMemberStateHook(h C.OnGroupReadyCheckMemberStateHook) {
+	C.SetOnGroupReadyCheckMemberStateHook(h)
+}
+
+//export TC9SetOnGroupReadyCheckFinishedHook
+func TC9SetOnGroupReadyCheckFinishedHook(h C.OnGroupReadyCheckFinishedHook) {
+	C.SetOnGroupReadyCheckFinishedHook(h)
+}
+
+//export TC9SetOnGroupMemberSubGroupChangedHook
+func TC9SetOnGroupMemberSubGroupChangedHook(h C.OnGroupMemberSubGroupChangedHook) {
+	C.SetOnGroupMemberSubGroupChangedHook(h)
+}
+
+//export TC9SetOnGroupMemberFlagsChangedHook
+func TC9SetOnGroupMemberFlagsChangedHook(h C.OnGroupMemberFlagsChangedHook) {
+	C.SetOnGroupMemberFlagsChangedHook(h)
+}
+
+//export TC9SetOnGroupMemberStateChangedHook
+func TC9SetOnGroupMemberStateChangedHook(h C.OnGroupMemberStateChangedHook) {
+	C.SetOnGroupMemberStateChangedHook(h)
+}
+
+//export TC9SetOnGroupInstanceResetRequestHook
+func TC9SetOnGroupInstanceResetRequestHook(h C.OnGroupInstanceResetRequestHook) {
+	C.SetOnGroupInstanceResetRequestHook(h)
+}
+
+//export TC9SetOnGroupInstanceBindExtensionRequestHook
+func TC9SetOnGroupInstanceBindExtensionRequestHook(h C.OnGroupInstanceBindExtensionRequestHook) {
+	C.SetOnGroupInstanceBindExtensionRequestHook(h)
+}
+
 type groupHandlerFabric struct {
 	logger zerolog.Logger
 }
@@ -132,6 +177,34 @@ func (g groupHandlerFabric) GroupDisbanded(payload *events.GroupEventGroupDisban
 	})
 }
 
+//export TC9UpdateGroupMemberState
+func TC9UpdateGroupMemberState(
+	memberGuid C.uint64_t,
+	online C.uint8_t,
+	level C.uint8_t,
+	playerClass C.uint8_t,
+	zoneId C.uint32_t,
+	mapId C.uint32_t,
+	healthPct C.uint16_t,
+	powerPct C.uint16_t,
+) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, _ = groupServiceClient.UpdateMemberState(ctx, &groupPb.UpdateMemberStateRequest{
+		Api:        groupserver.Ver,
+		RealmID:    RealmID,
+		MemberGUID: uint64(memberGuid),
+		Online:     online != 0,
+		Level:      uint32(level),
+		ClassID:    uint32(playerClass),
+		ZoneID:     uint32(zoneId),
+		MapID:      uint32(mapId),
+		HealthPct:  uint32(healthPct),
+		PowerPct:   uint32(powerPct),
+	})
+}
+
 func (g groupHandlerFabric) GroupLootTypeChanged(payload *events.GroupEventGroupLootTypeChangedPayload) queue.Handler {
 	return eventsHandlerFunc(func() {
 		r := C.CallOnGroupLootTypeChangedHook(
@@ -186,4 +259,124 @@ func (g groupHandlerFabric) handleResponse(resp int, hookName string) {
 	default:
 		g.logger.Error().Str("hook", hookName).Msg("unk status")
 	}
+}
+
+func (g groupHandlerFabric) GroupReadyCheckStarted(payload *events.GroupEventReadyCheckStartedPayload) queue.Handler {
+	return eventsHandlerFunc(func() {
+		req := C.GroupReadyCheckStarted{
+			groupGuid:  C.uint32_t(payload.GroupID),
+			leaderGuid: C.uint64_t(payload.LeaderGUID),
+			durationMs: C.uint32_t(payload.DurationMs),
+		}
+
+		r := C.CallOnGroupReadyCheckStartedHook(&req)
+		g.handleResponse(int(r), "GroupReadyCheckStarted")
+	})
+}
+
+func (g groupHandlerFabric) GroupReadyCheckMemberState(payload *events.GroupEventReadyCheckMemberStatePayload) queue.Handler {
+	return eventsHandlerFunc(func() {
+		req := C.GroupReadyCheckMemberState{
+			groupGuid:  C.uint32_t(payload.GroupID),
+			memberGuid: C.uint64_t(payload.MemberGUID),
+			state:      C.uint8_t(payload.State),
+		}
+
+		r := C.CallOnGroupReadyCheckMemberStateHook(&req)
+		g.handleResponse(int(r), "GroupReadyCheckMemberState")
+	})
+}
+
+func (g groupHandlerFabric) GroupReadyCheckFinished(payload *events.GroupEventReadyCheckFinishedPayload) queue.Handler {
+	return eventsHandlerFunc(func() {
+		req := C.GroupReadyCheckFinished{
+			groupGuid: C.uint32_t(payload.GroupID),
+		}
+
+		r := C.CallOnGroupReadyCheckFinishedHook(&req)
+		g.handleResponse(int(r), "GroupReadyCheckFinished")
+	})
+}
+
+func (g groupHandlerFabric) GroupMemberSubGroupChanged(payload *events.GroupEventMemberSubGroupChangedPayload) queue.Handler {
+	return eventsHandlerFunc(func() {
+		req := C.GroupMemberSubGroupChanged{
+			groupGuid:  C.uint32_t(payload.GroupID),
+			memberGuid: C.uint64_t(payload.MemberGUID),
+			subGroup:   C.uint8_t(payload.SubGroup),
+		}
+
+		r := C.CallOnGroupMemberSubGroupChangedHook(&req)
+		g.handleResponse(int(r), "GroupMemberSubGroupChanged")
+	})
+}
+
+func (g groupHandlerFabric) GroupMemberFlagsChanged(payload *events.GroupEventMemberFlagsChangedPayload) queue.Handler {
+	return eventsHandlerFunc(func() {
+		req := C.GroupMemberFlagsChanged{
+			groupGuid:  C.uint32_t(payload.GroupID),
+			memberGuid: C.uint64_t(payload.MemberGUID),
+			flags:      C.uint8_t(payload.Flags),
+			roles:      C.uint8_t(payload.Roles),
+		}
+
+		r := C.CallOnGroupMemberFlagsChangedHook(&req)
+		g.handleResponse(int(r), "GroupMemberFlagsChanged")
+	})
+}
+
+func (g groupHandlerFabric) GroupMemberStateChanged(payload *events.GroupEventMemberStateChangedPayload) queue.Handler {
+	return eventsHandlerFunc(func() {
+		req := C.GroupMemberStateChanged{
+			groupGuid:   C.uint32_t(payload.GroupID),
+			memberGuid:  C.uint64_t(payload.MemberGUID),
+			online:      C.uint8_t(boolToUint8(payload.Online)),
+			level:       C.uint8_t(payload.Level),
+			playerClass: C.uint8_t(payload.Class),
+			zoneId:      C.uint32_t(payload.ZoneID),
+			mapId:       C.uint32_t(payload.MapID),
+			healthPct:   C.uint16_t(payload.HealthPct),
+			powerPct:    C.uint16_t(payload.PowerPct),
+		}
+
+		r := C.CallOnGroupMemberStateChangedHook(&req)
+		g.handleResponse(int(r), "GroupMemberStateChanged")
+	})
+}
+
+func (g groupHandlerFabric) GroupInstanceResetRequest(payload *events.GroupEventInstanceResetRequestPayload) queue.Handler {
+	return eventsHandlerFunc(func() {
+		req := C.GroupInstanceResetRequest{
+			groupGuid:  C.uint32_t(payload.GroupID),
+			playerGuid: C.uint64_t(payload.PlayerGUID),
+			mapId:      C.uint32_t(payload.MapID),
+			difficulty: C.uint8_t(payload.Difficulty),
+		}
+
+		r := C.CallOnGroupInstanceResetRequestHook(&req)
+		g.handleResponse(int(r), "GroupInstanceResetRequest")
+	})
+}
+
+func (g groupHandlerFabric) GroupInstanceBindExtensionRequest(payload *events.GroupEventInstanceBindExtensionRequestPayload) queue.Handler {
+	return eventsHandlerFunc(func() {
+		req := C.GroupInstanceBindExtensionRequest{
+			groupGuid:  C.uint32_t(payload.GroupID),
+			playerGuid: C.uint64_t(payload.PlayerGUID),
+			mapId:      C.uint32_t(payload.MapID),
+			difficulty: C.uint8_t(payload.Difficulty),
+			extended:   C.uint8_t(boolToUint8(payload.Extended)),
+		}
+
+		r := C.CallOnGroupInstanceBindExtensionRequestHook(&req)
+		g.handleResponse(int(r), "GroupInstanceBindExtensionRequest")
+	})
+}
+
+func boolToUint8(v bool) uint8 {
+	if v {
+		return 1
+	}
+
+	return 0
 }
