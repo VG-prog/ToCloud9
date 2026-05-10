@@ -56,7 +56,7 @@ func (w *WorldServerGRPCAPI) GetPlayerItemsByGuids(ctx context.Context, request 
 			Count:            item.Count,
 			Flags:            uint32(item.Flags),
 			Durability:       item.Durability,
-			RandomPropertyID: uint32(item.RandomPropertyID),
+			RandomPropertyID: item.RandomPropertyID,
 			Text:             item.Text,
 		}
 	}
@@ -131,7 +131,7 @@ func (w *WorldServerGRPCAPI) AddExistingItemToPlayer(ctx context.Context, reques
 			Count:            request.Item.Count,
 			Flags:            uint32(request.Item.Flags),
 			Durability:       request.Item.Durability,
-			RandomPropertyID: int32(request.Item.RandomPropertyID),
+			RandomPropertyID: request.Item.RandomPropertyID,
 			Text:             request.Item.Text,
 		})
 		close(respChan)

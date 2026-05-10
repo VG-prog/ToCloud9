@@ -10,38 +10,55 @@ import (
 type groupNatsListener struct {
 	consumer    events.GroupEventsConsumer
 	broadcaster eBroadcaster.Broadcaster
+	nc          *nats.Conn
+	extraSubs   []*nats.Subscription
 }
 
 func NewGroupNatsListener(nc *nats.Conn, broadcaster eBroadcaster.Broadcaster) Listener {
 	listener := &groupNatsListener{
 		broadcaster: broadcaster,
+		nc:          nc,
 	}
 
-    listener.consumer = events.NewGroupEventsConsumer(
-        nc,
-        events.WithGroupEventConsumerInviteCreatedHandler(listener),
-        events.WithGroupEventConsumerGroupCreatedHandler(listener),
-        events.WithGroupEventConsumerGroupMemberOnlineStatusChangedHandler(listener),
-        events.WithGroupEventConsumerGroupMemberLeftHandler(listener),
-        events.WithGroupEventConsumerMemberAddedHandler(listener),
-        events.WithGroupEventConsumerGroupDisbandHandler(listener),
-        events.WithGroupEventConsumerConvertedToRaidHandler(listener),
-        events.WithGroupEventConsumerLeaderChangedHandler(listener),
-        events.WithGroupEventConsumerLootTypeChangedHandler(listener),
-        events.WithGroupEventNewChatMessageHandler(listener),
-        events.WithGroupEventNewTargetIconHandler(listener),
-        events.WithGroupDifficultyChangedHandler(listener),
-    )
+	listener.consumer = events.NewGroupEventsConsumer(
+		nc,
+		events.WithGroupEventConsumerInviteCreatedHandler(listener),
+		events.WithGroupEventConsumerGroupCreatedHandler(listener),
+		events.WithGroupEventConsumerGroupMemberOnlineStatusChangedHandler(listener),
+		events.WithGroupEventConsumerGroupMemberLeftHandler(listener),
+		events.WithGroupEventConsumerMemberAddedHandler(listener),
+		events.WithGroupEventConsumerGroupDisbandHandler(listener),
+		events.WithGroupEventConsumerConvertedToRaidHandler(listener),
+		events.WithGroupEventConsumerLeaderChangedHandler(listener),
+		events.WithGroupEventConsumerLootTypeChangedHandler(listener),
+		events.WithGroupEventNewChatMessageHandler(listener),
+		events.WithGroupEventNewTargetIconHandler(listener),
+		events.WithGroupDifficultyChangedHandler(listener),
+	)
 
 	return listener
 }
 
 func (l *groupNatsListener) Listen() error {
-	return l.consumer.Listen()
+	if err := l.consumer.Listen(); err != nil {
+		return err
+	}
+
+	return l.listenExtraGroupEvents()
 }
 
 func (l *groupNatsListener) Stop() error {
-	return l.consumer.Stop()
+	if err := l.consumer.Stop(); err != nil {
+		return err
+	}
+
+	for _, sub := range l.extraSubs {
+		if err := sub.Unsubscribe(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (l *groupNatsListener) GroupInviteCreatedEvent(payload *events.GroupEventInviteCreatedPayload) error {

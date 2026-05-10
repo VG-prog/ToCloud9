@@ -177,34 +177,8 @@ func (g groupHandlerFabric) GroupDisbanded(payload *events.GroupEventGroupDisban
 	})
 }
 
-//export TC9UpdateGroupMemberState
-func TC9UpdateGroupMemberState(
-	memberGuid C.uint64_t,
-	online C.uint8_t,
-	level C.uint8_t,
-	playerClass C.uint8_t,
-	zoneId C.uint32_t,
-	mapId C.uint32_t,
-	healthPct C.uint16_t,
-	powerPct C.uint16_t,
-) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	_, _ = groupServiceClient.UpdateMemberState(ctx, &groupPb.UpdateMemberStateRequest{
-		Api:        groupserver.Ver,
-		RealmID:    RealmID,
-		MemberGUID: uint64(memberGuid),
-		Online:     online != 0,
-		Level:      uint32(level),
-		ClassID:    uint32(playerClass),
-		ZoneID:     uint32(zoneId),
-		MapID:      uint32(mapId),
-		HealthPct:  uint32(healthPct),
-		PowerPct:   uint32(powerPct),
-	})
-}
-
+	_, _ = groupServiceClient.UpdateMemberState(ctx, &pb.UpdateMemberStateRequest{
+		RealmID:    configuredRealmID,
 func (g groupHandlerFabric) GroupLootTypeChanged(payload *events.GroupEventGroupLootTypeChangedPayload) queue.Handler {
 	return eventsHandlerFunc(func() {
 		r := C.CallOnGroupLootTypeChangedHook(

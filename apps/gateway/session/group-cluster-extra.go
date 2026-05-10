@@ -50,21 +50,16 @@ func (s *GameSession) HandleRaidReadyCheck(ctx context.Context, p *packet.Packet
 		return err
 	}
 
-	clientState := r.Uint8()
+	state := r.Uint8()
 	if err := r.Error(); err != nil {
 		return err
-	}
-
-	state := uint32(2) // not ready
-	if clientState != 0 {
-		state = 1 // ready
 	}
 
 	_, err := s.groupServiceClient.SetReadyCheckMemberState(ctx, &pb.SetReadyCheckMemberStateRequest{
 		Api:        root.SupportedGroupServiceVer,
 		RealmID:    root.RealmID,
 		MemberGUID: s.character.GUID,
-		State:      state,
+		State:      uint32(state),
 	})
 	return err
 }
@@ -100,7 +95,7 @@ func (s *GameSession) HandleGroupChangeSubGroup(ctx context.Context, p *packet.P
 		Api:         root.SupportedGroupServiceVer,
 		RealmID:     root.RealmID,
 		UpdaterGUID: s.character.GUID,
-		MemberGUID:  charResp.Character.CharGUID,
+		MemberGUID:  charResp.Character.Guid,
 		SubGroup:    uint32(subGroup),
 	})
 	return err
@@ -198,9 +193,9 @@ func (s *GameSession) HandleSetSavedInstanceExtend(ctx context.Context, p *packe
 
 func (s *GameSession) setGroupMemberFlag(ctx context.Context, memberGUID uint64, flag uint8, apply bool) error {
 	groupResp, err := s.groupServiceClient.GetGroupByMember(ctx, &pb.GetGroupByMemberRequest{
-		Api:     root.SupportedGroupServiceVer,
-		RealmID: root.RealmID,
-		Player:  s.character.GUID,
+		Api:        root.SupportedGroupServiceVer,
+		RealmID:    root.RealmID,
+		MemberGUID: s.character.GUID,
 	})
 	if err != nil {
 		return err
@@ -252,10 +247,6 @@ func (s *GameSession) HandleEventGroupReadyCheckStarted(ctx context.Context, eve
 
 func (s *GameSession) HandleEventGroupReadyCheckMemberState(ctx context.Context, event *eBroadcaster.Event) error {
 	payload := event.Payload.(*events.GroupEventReadyCheckMemberStatePayload)
-
-	if payload.State == 0 {
-		return nil
-	}
 
 	confirm := uint8(0)
 	if payload.State == 1 {
@@ -340,8 +331,8 @@ func (s *GameSession) sendPartyMemberStats(payload *events.GroupEventMemberState
 	health := clampPct16(payload.HealthPct)
 	power := clampPct16(payload.PowerPct)
 
-	w := packet.NewWriterWithSize(packet.SMsgPartyMemberStatsFull, 64)
-	w.GUID(payload.MemberGUID) // debe escribir packed GUID
+	w := packet.NewWriterWithSize(packet.SMsgPartyMemberStats, 64)
+	w.GUID(payload.MemberGUID)
 	w.Uint32(mask)
 	w.Uint16(status)
 	w.Uint32(uint32(health))
