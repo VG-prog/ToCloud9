@@ -5,11 +5,9 @@ import (
 	"fmt"
 
 	root "github.com/walkline/ToCloud9/apps/gateway"
-	eBroadcaster "github.com/walkline/ToCloud9/apps/gateway/events-broadcaster"
 	"github.com/walkline/ToCloud9/apps/gateway/packet"
 	pbChar "github.com/walkline/ToCloud9/gen/characters/pb"
 	"github.com/walkline/ToCloud9/gen/group/pb"
-	"github.com/walkline/ToCloud9/shared/events"
 )
 
 const (
@@ -18,18 +16,6 @@ const (
 	groupMemberFlagAssistant  uint8 = 0x01
 	groupMemberFlagMainTank   uint8 = 0x02
 	groupMemberFlagMainAssist uint8 = 0x04
-
-	memberStatusOffline uint16 = 0x0000
-	memberStatusOnline  uint16 = 0x0001
-
-	groupUpdateFlagStatus    uint32 = 0x00000001
-	groupUpdateFlagCurHP     uint32 = 0x00000002
-	groupUpdateFlagMaxHP     uint32 = 0x00000004
-	groupUpdateFlagPowerType uint32 = 0x00000008
-	groupUpdateFlagCurPower  uint32 = 0x00000010
-	groupUpdateFlagMaxPower  uint32 = 0x00000020
-	groupUpdateFlagLevel     uint32 = 0x00000040
-	groupUpdateFlagZone      uint32 = 0x00000080
 )
 
 func (s *GameSession) HandleRaidReadyCheck(ctx context.Context, p *packet.Packet) error {
@@ -235,117 +221,6 @@ func (s *GameSession) setGroupMemberFlag(ctx context.Context, memberGUID uint64,
 	return err
 }
 
-func (s *GameSession) HandleEventGroupReadyCheckStarted(ctx context.Context, event *eBroadcaster.Event) error {
-	payload := event.Payload.(*events.GroupEventReadyCheckStartedPayload)
-
-	w := packet.NewWriterWithSize(packet.MsgRaidReadyCheck, 8)
-	w.Uint64(payload.LeaderGUID)
-
-	s.gameSocket.Send(w)
-	return nil
-}
-
-func (s *GameSession) HandleEventGroupReadyCheckMemberState(ctx context.Context, event *eBroadcaster.Event) error {
-	payload := event.Payload.(*events.GroupEventReadyCheckMemberStatePayload)
-
-	confirm := uint8(0)
-	if payload.State == 1 {
-		confirm = 1
-	}
-
-	w := packet.NewWriterWithSize(packet.MsgRaidReadyCheckConfirm, 9)
-	w.Uint64(payload.MemberGUID)
-	w.Uint8(confirm)
-
-	s.gameSocket.Send(w)
-	return nil
-}
-
-func (s *GameSession) HandleEventGroupReadyCheckFinished(ctx context.Context, event *eBroadcaster.Event) error {
-	w := packet.NewWriterWithSize(packet.MsgRaidReadyCheckFinished, 0)
-	s.gameSocket.Send(w)
-
-	return nil
-}
-
-func (s *GameSession) HandleEventGroupMemberSubGroupChanged(ctx context.Context, event *eBroadcaster.Event) error {
-	payload := event.Payload.(*events.GroupEventMemberSubGroupChangedPayload)
-	return s.SendGroupUpdate(ctx, payload.GroupID)
-}
-
-func (s *GameSession) HandleEventGroupMemberFlagsChanged(ctx context.Context, event *eBroadcaster.Event) error {
-	payload := event.Payload.(*events.GroupEventMemberFlagsChangedPayload)
-	return s.SendGroupUpdate(ctx, payload.GroupID)
-}
-
-func (s *GameSession) HandleEventGroupMemberStateChanged(ctx context.Context, event *eBroadcaster.Event) error {
-	payload := event.Payload.(*events.GroupEventMemberStateChangedPayload)
-
-	if payload.MemberGUID == s.character.GUID {
-		return nil
-	}
-
-	s.sendPartyMemberStats(payload)
-	return nil
-}
-
-const (
-	powerMana       uint8 = 0
-	powerRage       uint8 = 1
-	powerEnergy     uint8 = 3
-	powerRunicPower uint8 = 6
-
-	classWarrior     uint8 = 1
-	classRogue       uint8 = 4
-	classDeathKnight uint8 = 6
-)
-
-func defaultPowerTypeForClass(class uint8) uint8 {
-	switch class {
-	case classWarrior:
-		return powerRage
-	case classRogue:
-		return powerEnergy
-	case classDeathKnight:
-		return powerRunicPower
-	default:
-		return powerMana
-	}
-}
-
-func (s *GameSession) sendPartyMemberStats(payload *events.GroupEventMemberStateChangedPayload) {
-	status := memberStatusOffline
-	if payload.Online {
-		status = memberStatusOnline
-	}
-
-	mask := groupUpdateFlagStatus |
-		groupUpdateFlagCurHP |
-		groupUpdateFlagMaxHP |
-		groupUpdateFlagPowerType |
-		groupUpdateFlagCurPower |
-		groupUpdateFlagMaxPower |
-		groupUpdateFlagLevel |
-		groupUpdateFlagZone
-
-	health := clampPct16(payload.HealthPct)
-	power := clampPct16(payload.PowerPct)
-
-	w := packet.NewWriterWithSize(packet.SMsgPartyMemberStats, 64)
-	w.GUID(payload.MemberGUID)
-	w.Uint32(mask)
-	w.Uint16(status)
-	w.Uint32(uint32(health))
-	w.Uint32(100)
-	w.Uint8(defaultPowerTypeForClass(payload.Class))
-	w.Uint16(power)
-	w.Uint16(100)
-	w.Uint16(uint16(payload.Level))
-	w.Uint16(uint16(payload.ZoneID))
-
-	s.gameSocket.Send(w)
-}
-
 func readGUIDThenBoolCompatible(r *packet.Reader) uint64 {
 	if r.Left() == 9 {
 		return r.Uint64()
@@ -368,12 +243,4 @@ func readRemainingGUIDCompatible(r *packet.Reader) uint64 {
 	}
 
 	return r.ReadGUID()
-}
-
-func clampPct16(v uint16) uint16 {
-	if v > 100 {
-		return 100
-	}
-
-	return v
 }

@@ -341,8 +341,11 @@ message UpdateMemberStateRequest {
   uint32 classID = 6;
   uint32 zoneID = 7;
   uint32 mapID = 8;
-  uint32 healthPct = 9;
-  uint32 powerPct = 10;
+  uint32 health = 9;
+  uint32 maxHealth = 10;
+  uint32 powerType = 11;
+  uint32 power = 12;
+  uint32 maxPower = 13;
 }
 
 message UpdateMemberStateResponse {

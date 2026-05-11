@@ -310,8 +310,11 @@ type GroupEventMemberStateChangedPayload struct {
 	Class      uint8
 	ZoneID     uint32
 	MapID      uint32
-	HealthPct  uint16
-	PowerPct   uint16
+    Health    uint32
+    MaxHealth uint32
+    PowerType uint8
+    Power     uint32
+    MaxPower  uint32
 	Receivers  []uint64
 }
 

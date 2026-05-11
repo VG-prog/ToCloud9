@@ -296,18 +296,21 @@ func (g GroupServer) SetMemberFlags(ctx context.Context, params *pb.SetMemberFla
 }
 
 func (g GroupServer) UpdateMemberState(ctx context.Context, params *pb.UpdateMemberStateRequest) (*pb.UpdateMemberStateResponse, error) {
-	err := g.groupService.UpdateMemberState(
-		ctx,
-		params.RealmID,
-		params.MemberGUID,
-		params.Online,
-		uint8(params.Level),
-		uint8(params.ClassID),
-		params.ZoneID,
-		params.MapID,
-		uint16(params.HealthPct),
-		uint16(params.PowerPct),
-	)
+    err := g.groupService.UpdateMemberState(
+        ctx,
+        params.RealmID,
+        params.MemberGUID,
+        params.Online,
+        uint8(params.Level),
+        uint8(params.ClassID),
+        params.ZoneID,
+        params.MapID,
+        params.Health,
+        params.MaxHealth,
+        uint8(params.PowerType),
+        params.Power,
+        params.MaxPower,
+    )
 	if err != nil {
 		return nil, err
 	}

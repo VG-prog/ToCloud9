@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"time"
 	"unsafe"
+    zlog "github.com/rs/zerolog/log"
 
 	groupserver "github.com/walkline/ToCloud9/apps/groupserver"
 	groupPb "github.com/walkline/ToCloud9/gen/group/pb"
@@ -179,30 +180,51 @@ func (g groupHandlerFabric) GroupDisbanded(payload *events.GroupEventGroupDisban
 
 //export TC9UpdateGroupMemberState
 func TC9UpdateGroupMemberState(
-	memberGuid C.uint64_t,
-	online C.uint8_t,
-	level C.uint8_t,
-	playerClass C.uint8_t,
-	zoneId C.uint32_t,
-	mapId C.uint32_t,
-	healthPct C.uint16_t,
-	powerPct C.uint16_t,
+    memberGuid C.uint64_t,
+    online C.uint8_t,
+    level C.uint8_t,
+    playerClass C.uint8_t,
+    zoneId C.uint32_t,
+    mapId C.uint32_t,
+    health C.uint32_t,
+    maxHealth C.uint32_t,
+    powerType C.uint8_t,
+    power C.uint32_t,
+    maxPower C.uint32_t,
 ) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, _ = groupServiceClient.UpdateMemberState(ctx, &groupPb.UpdateMemberStateRequest{
-		Api:        groupserver.Ver,
-		RealmID:    RealmID,
-		MemberGUID: uint64(memberGuid),
-		Online:     online != 0,
-		Level:      uint32(level),
-		ClassID:    uint32(playerClass),
-		ZoneID:     uint32(zoneId),
-		MapID:      uint32(mapId),
-		HealthPct:  uint32(healthPct),
-		PowerPct:   uint32(powerPct),
-	})
+    _, err := groupServiceClient.UpdateMemberState(ctx, &groupPb.UpdateMemberStateRequest{
+        Api:        groupserver.Ver,
+        RealmID:    RealmID,
+        MemberGUID: uint64(memberGuid),
+        Online:     online != 0,
+        Level:      uint32(level),
+        ClassID:    uint32(playerClass),
+        ZoneID:     uint32(zoneId),
+        MapID:      uint32(mapId),
+        Health:     uint32(health),
+        MaxHealth:  uint32(maxHealth),
+        PowerType:  uint32(powerType),
+        Power:      uint32(power),
+        MaxPower:   uint32(maxPower),
+    })
+    if err != nil {
+        zlog.Error().
+            Err(err).
+            Uint64("member", uint64(memberGuid)).
+            Bool("online", online != 0).
+            Uint8("level", uint8(level)).
+            Uint8("class", uint8(playerClass)).
+            Uint32("zone", uint32(zoneId)).
+            Uint32("health", uint32(health)).
+            Uint32("maxHealth", uint32(maxHealth)).
+            Uint8("powerType", uint8(powerType)).
+            Uint32("power", uint32(power)).
+            Uint32("maxPower", uint32(maxPower)).
+            Msg("failed to update group member state")
+    }
 }
 
 func (g groupHandlerFabric) GroupLootTypeChanged(payload *events.GroupEventGroupLootTypeChangedPayload) queue.Handler {
@@ -327,17 +349,20 @@ func (g groupHandlerFabric) GroupMemberFlagsChanged(payload *events.GroupEventMe
 
 func (g groupHandlerFabric) GroupMemberStateChanged(payload *events.GroupEventMemberStateChangedPayload) queue.Handler {
 	return eventsHandlerFunc(func() {
-		req := C.GroupMemberStateChanged{
-			groupGuid:   C.uint32_t(payload.GroupID),
-			memberGuid:  C.uint64_t(payload.MemberGUID),
-			online:      C.uint8_t(boolToUint8(payload.Online)),
-			level:       C.uint8_t(payload.Level),
-			playerClass: C.uint8_t(payload.Class),
-			zoneId:      C.uint32_t(payload.ZoneID),
-			mapId:       C.uint32_t(payload.MapID),
-			healthPct:   C.uint16_t(payload.HealthPct),
-			powerPct:    C.uint16_t(payload.PowerPct),
-		}
+        req := C.GroupMemberStateChanged{
+            groupGuid:   C.uint32_t(payload.GroupID),
+            memberGuid:  C.uint64_t(payload.MemberGUID),
+            online:      C.uint8_t(boolToUint8(payload.Online)),
+            level:       C.uint8_t(payload.Level),
+            playerClass: C.uint8_t(payload.Class),
+            zoneId:      C.uint32_t(payload.ZoneID),
+            mapId:       C.uint32_t(payload.MapID),
+            health:      C.uint32_t(payload.Health),
+            maxHealth:   C.uint32_t(payload.MaxHealth),
+            powerType:   C.uint8_t(payload.PowerType),
+            power:       C.uint32_t(payload.Power),
+            maxPower:    C.uint32_t(payload.MaxPower),
+        }
 
 		r := C.CallOnGroupMemberStateChangedHook(&req)
 		g.handleResponse(int(r), "GroupMemberStateChanged")

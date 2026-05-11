@@ -60,7 +60,7 @@ type GroupsService interface {
 	FinishReadyCheck(ctx context.Context, realmID uint32, playerGUID uint64) error
 	ChangeMemberSubGroup(ctx context.Context, realmID uint32, updaterGUID, memberGUID uint64, subGroup uint8) error
 	SetMemberFlags(ctx context.Context, realmID uint32, updaterGUID, memberGUID uint64, flags, roles uint8) error
-	UpdateMemberState(ctx context.Context, realmID uint32, memberGUID uint64, online bool, level, class uint8, zoneID, mapID uint32, healthPct, powerPct uint16) error
+	UpdateMemberState(ctx context.Context, realmID uint32, memberGUID uint64, online bool, level, class uint8, zoneID, mapID uint32, health, maxHealth uint32, powerType uint8, power, maxPower uint32) error
 	ResetInstance(ctx context.Context, realmID uint32, playerGUID uint64, mapID uint32, difficulty uint8) error
 	SetInstanceBindExtension(ctx context.Context, realmID uint32, playerGUID uint64, mapID uint32, difficulty uint8, extended bool) error
 
@@ -1029,12 +1029,12 @@ func (g groupServiceImpl) SetMemberFlags(ctx context.Context, realmID uint32, up
 	})
 }
 
-func (g groupServiceImpl) UpdateMemberState(ctx context.Context, realmID uint32, memberGUID uint64, online bool, level, class uint8, zoneID, mapID uint32, healthPct, powerPct uint16) error {
-	if healthPct > 100 {
-		healthPct = 100
+func (g groupServiceImpl) UpdateMemberState(ctx context.Context, realmID uint32, memberGUID uint64, online bool, level, class uint8, zoneID, mapID uint32, health, maxHealth uint32, powerType uint8, power, maxPower uint32) error {
+	if maxHealth > 0 && health > maxHealth {
+		health = maxHealth
 	}
-	if powerPct > 100 {
-		powerPct = 100
+	if maxPower > 0 && power > maxPower {
+		power = maxPower
 	}
 
 	group, err := g.GroupByMemberGUID(ctx, realmID, memberGUID)
@@ -1058,6 +1058,10 @@ func (g groupServiceImpl) UpdateMemberState(ctx context.Context, realmID uint32,
 		}
 	}
 
+	if maxHealth == 0 {
+		maxHealth = 1
+	}
+
 	return g.ep.GroupMemberStateChanged(&events.GroupEventMemberStateChangedPayload{
 		ServiceID:  groupserver.ServiceID,
 		RealmID:    realmID,
@@ -1068,8 +1072,11 @@ func (g groupServiceImpl) UpdateMemberState(ctx context.Context, realmID uint32,
 		Class:      class,
 		ZoneID:     zoneID,
 		MapID:      mapID,
-		HealthPct:  healthPct,
-		PowerPct:   powerPct,
+		Health:     health,
+		MaxHealth:  maxHealth,
+		PowerType:  powerType,
+		Power:      power,
+		MaxPower:   maxPower,
 		Receivers:  group.OnlineMemberGUIDs(),
 	})
 }
