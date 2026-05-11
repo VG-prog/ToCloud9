@@ -38,12 +38,12 @@ var EventsHandleMap = map[eBroadcaster.EventType]EventsHandlersQueue{
 	eBroadcaster.EventTypeGroupNewMessage:                NewEventHandler("EventTypeGroupNewMessage", (*GameSession).HandleEventGroupNewMessage),
 	eBroadcaster.EventTypeGroupNewTargetIcon:             NewEventHandler("EventTypeGroupNewTargetIcon", (*GameSession).HandleEventGroupNewTargetIcon),
 	eBroadcaster.EventTypeGroupDifficultyChanged:         NewEventHandler("EventTypeGroupDifficultyChanged", (*GameSession).HandleEventGroupDifficultyChanged),
-    eBroadcaster.EventTypeGroupReadyCheckStarted:     NewEventHandler("EventTypeGroupReadyCheckStarted", (*GameSession).HandleEventGroupReadyCheckStarted),
-    eBroadcaster.EventTypeGroupReadyCheckMemberState: NewEventHandler("EventTypeGroupReadyCheckMemberState", (*GameSession).HandleEventGroupReadyCheckMemberState),
-    eBroadcaster.EventTypeGroupReadyCheckFinished:    NewEventHandler("EventTypeGroupReadyCheckFinished", (*GameSession).HandleEventGroupReadyCheckFinished),
-    eBroadcaster.EventTypeGroupMemberSubGroupChanged: NewEventHandler("EventTypeGroupMemberSubGroupChanged", (*GameSession).HandleEventGroupMemberSubGroupChanged),
-    eBroadcaster.EventTypeGroupMemberFlagsChanged:    NewEventHandler("EventTypeGroupMemberFlagsChanged", (*GameSession).HandleEventGroupMemberFlagsChanged),
-    eBroadcaster.EventTypeGroupMemberStateChanged:    NewEventHandler("EventTypeGroupMemberStateChanged", (*GameSession).HandleEventGroupMemberStateChanged),
+	eBroadcaster.EventTypeGroupReadyCheckStarted:         NewEventHandler("EventTypeGroupReadyCheckStarted", (*GameSession).HandleEventGroupReadyCheckStarted),
+	eBroadcaster.EventTypeGroupReadyCheckMemberState:     NewEventHandler("EventTypeGroupReadyCheckMemberState", (*GameSession).HandleEventGroupReadyCheckMemberState),
+	eBroadcaster.EventTypeGroupReadyCheckFinished:        NewEventHandler("EventTypeGroupReadyCheckFinished", (*GameSession).HandleEventGroupReadyCheckFinished),
+	eBroadcaster.EventTypeGroupMemberSubGroupChanged:     NewEventHandler("EventTypeGroupMemberSubGroupChanged", (*GameSession).HandleEventGroupMemberSubGroupChanged),
+	eBroadcaster.EventTypeGroupMemberFlagsChanged:        NewEventHandler("EventTypeGroupMemberFlagsChanged", (*GameSession).HandleEventGroupMemberFlagsChanged),
+	eBroadcaster.EventTypeGroupMemberStateChanged:        NewEventHandler("EventTypeGroupMemberStateChanged", (*GameSession).HandleEventGroupMemberStateChanged),
 
 	// Matchmaking
 	eBroadcaster.EventTypeMMJoinedPVPQueue:           NewEventHandler("EventTypeMMJoinedPVPQueue", (*GameSession).HandleEventMMJoinedPVPQueue),

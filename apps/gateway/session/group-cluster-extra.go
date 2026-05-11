@@ -95,7 +95,7 @@ func (s *GameSession) HandleGroupChangeSubGroup(ctx context.Context, p *packet.P
 		Api:         root.SupportedGroupServiceVer,
 		RealmID:     root.RealmID,
 		UpdaterGUID: s.character.GUID,
-		MemberGUID:  charResp.Character.Guid,
+		MemberGUID:  charResp.Character.CharGUID,
 		SubGroup:    uint32(subGroup),
 	})
 	return err
@@ -193,9 +193,9 @@ func (s *GameSession) HandleSetSavedInstanceExtend(ctx context.Context, p *packe
 
 func (s *GameSession) setGroupMemberFlag(ctx context.Context, memberGUID uint64, flag uint8, apply bool) error {
 	groupResp, err := s.groupServiceClient.GetGroupByMember(ctx, &pb.GetGroupByMemberRequest{
-		Api:        root.SupportedGroupServiceVer,
-		RealmID:    root.RealmID,
-		MemberGUID: s.character.GUID,
+		Api:     root.SupportedGroupServiceVer,
+		RealmID: root.RealmID,
+		Player:  s.character.GUID,
 	})
 	if err != nil {
 		return err
